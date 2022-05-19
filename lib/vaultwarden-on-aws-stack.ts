@@ -12,20 +12,10 @@ export class VaultwardenOnAwsStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // exist resources: please use your resources.
-    const certificate = Certificate.fromCertificateArn(this, 'Cert', 'arn:aws:acm:ap-northeast-2:832344807991:certificate/d9c33c93-0573-4033-991b-f8d957acd3b3');
-    const domainZone = HostedZone.fromLookup(this, 'Zone', { domainName: 'drskur.xyz' });
-    const domainName = 'vaultwarden.drskur.xyz';
-
     const vpc = new Vpc(this, "vpc");
     const cluster = this.createEcsCluster(vpc);
     const ecsService = new ApplicationLoadBalancedFargateService(this, "vaultwarden-service", {
       cluster,
-      certificate,
-      domainZone,
-      domainName,
-      sslPolicy: SslPolicy.RECOMMENDED,
-      redirectHTTP: true,
       desiredCount: 1,
       taskImageOptions: {
         image: ContainerImage.fromRegistry('vaultwarden/server'),
@@ -33,6 +23,28 @@ export class VaultwardenOnAwsStack extends Stack {
       cpu: 512,
       memoryLimitMiB: 1024,
     });
+
+    // TODO: if you want to use your domain, then use following code.
+    // TODO: it requires route53 hosted zone and amazon ssl certificate arn.
+    // exist resources: please use your resources.
+    // const certificate = Certificate.fromCertificateArn(this, 'Cert', 'arn:aws:acm:ap-northeast-2:832344807991:certificate/d9c33c93-0573-4033-991b-f8d957acd3b3');
+    // const domainZone = HostedZone.fromLookup(this, 'Zone', { domainName: 'drskur.xyz' });
+    // const domainName = 'vaultwarden.drskur.xyz';
+    // const ecsService = new ApplicationLoadBalancedFargateService(this, "vaultwarden-service", {
+    //   cluster,
+    //   certificate,
+    //   domainZone,
+    //   domainName,
+    //   sslPolicy: SslPolicy.RECOMMENDED,
+    //   redirectHTTP: true,
+    //   desiredCount: 1,
+    //   taskImageOptions: {
+    //     image: ContainerImage.fromRegistry('vaultwarden/server'),
+    //   },
+    //   cpu: 512,
+    //   memoryLimitMiB: 1024,
+    // });
+
 
     const fsSG = this.createFsSecurityGroup(vpc);
     fsSG.connections.allowFrom(ecsService.service, Port.tcp(2049));
